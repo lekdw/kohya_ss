@@ -1,8 +1,14 @@
 FROM nvcr.io/nvidia/pytorch:23.04-py3 as base
 ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=Europe/London
+ENV TZ=Asia/Seoul
 
-RUN apt update && apt-get install -y software-properties-common
+RUN apt update
+
+RUN apt-get install -y openssh-server
+RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+RUN service ssh start
+
+RUN apt-get install -y software-properties-common
 RUN add-apt-repository ppa:deadsnakes/ppa && \
     apt update && \
     apt-get install -y git curl libgl1 libglib2.0-0 libgoogle-perftools-dev \
@@ -37,11 +43,13 @@ USER root
 RUN ln -s /usr/lib/x86_64-linux-gnu/libnvinfer.so /usr/lib/x86_64-linux-gnu/libnvinfer.so.7 && \
     ln -s /usr/lib/x86_64-linux-gnu/libnvinfer_plugin.so /usr/lib/x86_64-linux-gnu/libnvinfer_plugin.so.7
 
-RUN useradd -m -s /bin/bash appuser
-USER appuser
-COPY --chown=appuser . .
+RUN echo 'root:root' | chpasswd
+#RUN useradd -m -s /bin/bash appuser
+#USER appuser
+#COPY --chown=appuser . .
+COPY . .
 
 STOPSIGNAL SIGINT
 ENV LD_PRELOAD=libtcmalloc.so
-ENV PATH="$PATH:/home/appuser/.local/bin"
-CMD python3 "./kohya_gui.py" ${CLI_ARGS} --listen 0.0.0.0 --server_port 7860
+#ENV PATH="$PATH:/home/appuser/.local/bin"
+#CMD python3 "./kohya_gui.py" ${CLI_ARGS} --listen 0.0.0.0 --server_port 7860
